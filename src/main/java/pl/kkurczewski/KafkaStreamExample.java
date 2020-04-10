@@ -5,28 +5,28 @@ import org.apache.kafka.streams.KafkaStreams;
 import org.apache.kafka.streams.StreamsBuilder;
 
 import java.util.Properties;
-import java.util.concurrent.TimeUnit;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.kafka.streams.StreamsConfig.*;
-import static pl.kkurczewski.ConfigValues.HOST;
+import static pl.kkurczewski.ConfigValues.BROKER_ADDRESS;
 import static pl.kkurczewski.ConfigValues.TOPIC;
 
 public class KafkaStreamExample {
 
     public static void main(String[] args) {
 
-        Properties props = new Properties();
-        props.put(APPLICATION_ID_CONFIG, "test-stream");
-        props.put(BOOTSTRAP_SERVERS_CONFIG, HOST);
-        props.put(DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
-        props.put(DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+        Properties properties = new Properties();
+        properties.put(BOOTSTRAP_SERVERS_CONFIG, BROKER_ADDRESS);
+        properties.put(APPLICATION_ID_CONFIG, "test-stream");
+        properties.put(DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass());
+        properties.put(DEFAULT_VALUE_SERDE_CLASS_CONFIG, Serdes.String().getClass());
 
         StreamsBuilder builder = new StreamsBuilder();
         builder.<String, String>stream(TOPIC).foreach((key, value) -> System.out.println(key + ": " + value));
 
-        try (var streams = new KafkaStreams(builder.build(), props)) {
+        try (var streams = new KafkaStreams(builder.build(), properties)) {
             streams.start();
-            TimeUnit.SECONDS.sleep(5);
+            SECONDS.sleep(5);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

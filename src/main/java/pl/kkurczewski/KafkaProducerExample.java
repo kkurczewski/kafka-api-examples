@@ -2,34 +2,38 @@ package pl.kkurczewski;
 
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
+import org.apache.kafka.common.serialization.StringSerializer;
 
-import java.util.Properties;
+import java.time.Instant;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.kafka.clients.producer.ProducerConfig.*;
-import static pl.kkurczewski.ConfigValues.HOST;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.kafka.clients.producer.ProducerConfig.ACKS_CONFIG;
+import static org.apache.kafka.clients.producer.ProducerConfig.BOOTSTRAP_SERVERS_CONFIG;
+import static pl.kkurczewski.ConfigValues.BROKER_ADDRESS;
 import static pl.kkurczewski.ConfigValues.TOPIC;
 
 public class KafkaProducerExample {
 
-    static final String STRING_SERIALIZER = "org.apache.kafka.common.serialization.StringSerializer";
-
     public static void main(String[] args) {
+        Map<String, Object> properties = Map.of(
+                BOOTSTRAP_SERVERS_CONFIG, BROKER_ADDRESS,
+                ACKS_CONFIG, "all"
+        );
 
-        Properties producerProps = new Properties();
-        producerProps.put(BOOTSTRAP_SERVERS_CONFIG, HOST);
-        producerProps.put(ACKS_CONFIG, "all");
-        producerProps.put(KEY_SERIALIZER_CLASS_CONFIG, STRING_SERIALIZER);
-        producerProps.put(VALUE_SERIALIZER_CLASS_CONFIG, STRING_SERIALIZER);
+        var keySerializer = new StringSerializer();
+        var valueSerializer = new StringSerializer();
+        var producer = new KafkaProducer<>(properties, keySerializer, valueSerializer);
 
-        try (var producer = new org.apache.kafka.clients.producer.KafkaProducer<String, String>(producerProps)) {
-            RecordMetadata metadata = producer
-                    .send(new ProducerRecord<>(TOPIC, "foo", "bar"))
-                    .get(10, SECONDS);
-            System.out.println(metadata);
+        try (producer) {
+            for (int i = 0; i < 3; i++) {
+                var metadata = producer
+                        .send(new ProducerRecord<>(TOPIC, "foo-" + Instant.now(), "bar"))
+                        .get(100, MILLISECONDS);
+                System.out.println(metadata);
+            }
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             throw new RuntimeException(e);
         }
